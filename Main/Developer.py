@@ -93,7 +93,7 @@ def create_developer_page():
         advanced_button_1.clicked.connect(live_code_editor.open_editor)  # Attach the Live Code Editor function
         layout.addWidget(advanced_button_1)
 
-        advanced_button_2 = QPushButton("Advanced Feature 2")
+        advanced_button_2 = QPushButton("Set Up Global Variables")
         advanced_button_2.setStyleSheet("font-size: 16px;")
         layout.addWidget(advanced_button_2)
 
