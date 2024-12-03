@@ -11,6 +11,7 @@ import Developer
 
 
 
+
 # Initialization of the main application
 def initialize_app():
     app = QApplication([])
@@ -153,8 +154,11 @@ class MainWindow(QWidget):
         xero_sender = QPushButton("Xero Statement Sender")
         xero_sender.setFixedSize(200, 50)
         xero_sender.clicked.connect(Xero.create_window)
+        Xero_Setup_Button = QPushButton("My Details")
+        Xero_Setup_Button.clicked.connect(Xero.xero_setup)
 
         layout.addWidget(label)
+        layout.addWidget(xero_sender, alignment=Qt.AlignCenter)
         layout.addWidget(xero_sender, alignment=Qt.AlignCenter)
         page.setLayout(layout)
         return page

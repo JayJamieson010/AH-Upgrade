@@ -195,3 +195,7 @@ if __name__ == "__main__":
     window = MainWindow()
     window.showMaximized()
     app.exec_()
+
+ PATH = r"C:\webdrivers\chromedriver-win64\chromedriver.exe"
+ ###############################################
+ 

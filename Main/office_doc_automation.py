@@ -2,8 +2,10 @@ import os
 import json
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QLabel, QPushButton, QFileDialog,
-    QListWidget, QMessageBox, QInputDialog
+    QListWidget, QMessageBox, QInputDialog, QScrollArea, QSizePolicy
 )
+from PyQt5.QtGui import QFont
+from PyQt5.QtCore import Qt
 from docx import Document
 import pandas as pd
 
@@ -14,27 +16,35 @@ def create_file_automation_window():
     # Create the main window
     file_automation_window = QWidget()
     file_automation_window.setWindowTitle("File Automation System")
-    file_automation_window.setMinimumSize(800, 600)
+    file_automation_window.setMinimumSize(900, 700)
+    file_automation_window.setStyleSheet("background-color: #f4f4f4;")
 
     # Create the layout and add components
     layout = QVBoxLayout()
 
     # Title label
     title_label = QLabel("File Automation System")
-    title_label.setStyleSheet("font-size: 18px; font-weight: bold;")
-    layout.addWidget(title_label)
+    title_label.setStyleSheet("font-size: 22px; font-weight: bold; color: #8b0000;")
+    layout.addWidget(title_label, alignment=Qt.AlignCenter)
 
     # Labels for displaying selected file paths
     template_path_label = QLabel("No template selected.")
     excel_path_label = QLabel("No Excel file selected.")
     save_path_label = QLabel("No save directory selected.")
-    layout.addWidget(template_path_label)
-    layout.addWidget(excel_path_label)
-    layout.addWidget(save_path_label)
+    for label in [template_path_label, excel_path_label, save_path_label]:
+        label.setStyleSheet("font-size: 14px; color: #333;")
+        layout.addWidget(label)
 
-    # List to display saved automations
+    # List to display saved automations with scrolling
     automation_list = QListWidget()
-    automation_list.setStyleSheet("font-size: 16px;")
+    automation_list.setStyleSheet("""
+        font-size: 16px;
+        background-color: #ffffff;
+        border: 1px solid #ccc;
+        padding: 5px;
+    """)
+    automation_list.setFixedHeight(150)
+    automation_list.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
     layout.addWidget(automation_list)
 
     # Buttons for file selection and saving
@@ -44,6 +54,22 @@ def create_file_automation_window():
     save_automation_button = QPushButton("Save Automation")
     delete_automation_button = QPushButton("Delete Selected Automation")
     run_automation_button = QPushButton("Run Automation")
+
+    button_style = """
+        QPushButton {
+            font-size: 14px;
+            color: white;
+            background-color: #8b0000;
+            border: none;
+            padding: 10px;
+            margin: 5px 0;
+        }
+        QPushButton:hover {
+            background-color: #a00000;
+        }
+    """
+    for button in [browse_template_button, browse_excel_button, browse_save_button, save_automation_button, delete_automation_button, run_automation_button]:
+        button.setStyleSheet(button_style)
 
     # Add buttons to the layout
     layout.addWidget(browse_template_button)
@@ -216,3 +242,7 @@ def create_file_automation_window():
     file_automation_window.setLayout(layout)
     file_automation_window.show()
     app.exec_()
+
+
+if __name__ == "__main__":
+    create_file_automation_window()
