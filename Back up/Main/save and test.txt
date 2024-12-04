@@ -2,22 +2,14 @@
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
-    QStackedWidget
+    QStackedWidget, QFrame
 )
 import my_APC  # Import the test function
-import Xero
-import office_doc_automation
-import Developer
-
-
-
-
 # Initialization of the main application
 def initialize_app():
     app = QApplication([])
     app.setStyleSheet(global_stylesheet())
     return app
-
 
 # Stylesheet definitions
 def global_stylesheet():
@@ -45,7 +37,6 @@ def global_stylesheet():
         }
     """
 
-
 # Sidebar navigation
 class SidebarNavigation(QWidget):
     def __init__(self, parent=None):
@@ -53,29 +44,35 @@ class SidebarNavigation(QWidget):
         self.init_ui()
 
     def init_ui(self):
+        # Main layout for the sidebar
         self.setFixedWidth(250)
         self.setStyleSheet("background-color: lightgray;")
-
         layout = QVBoxLayout()
+        
+        # Add buttons for navigation
+        self.home_button = QPushButton("🏠 Home", self)
+        self.home_button.setObjectName("sidebarButton")
+        layout.addWidget(self.home_button)
 
-        # Sidebar buttons
-        buttons = [
-            ("🏠 Home", "home_button"),
-            ("📄 Xero Automation", "xero_button"),
-            ("💼 Office Automation", "office_button"),
-            ("📦 APC Package Tools", "apc_button"),
-            ("⚙️ Settings", "settings_button"),
-            ("⚙️ Developer", "Dev_Login_button")
-        ]
-        for text, name in buttons:
-            button = QPushButton(text, self)
-            button.setObjectName("sidebarButton")
-            setattr(self, name, button)  # Dynamically set attributes for each button
-            layout.addWidget(button)
+        self.xero_button = QPushButton("📄 Xero Automation", self)
+        self.xero_button.setObjectName("sidebarButton")
+        layout.addWidget(self.xero_button)
 
+        self.office_button = QPushButton("💼 Office Automation", self)
+        self.office_button.setObjectName("sidebarButton")
+        layout.addWidget(self.office_button)
+
+        self.apc_button = QPushButton("📦 APC Package Tools", self)
+        self.apc_button.setObjectName("sidebarButton")
+        layout.addWidget(self.apc_button)
+
+        self.settings_button = QPushButton("⚙️ Settings", self)
+        self.settings_button.setObjectName("sidebarButton")
+        layout.addWidget(self.settings_button)
+
+        # Stretch to align items to the top
         layout.addStretch()
         self.setLayout(layout)
-
 
 # Main window with sidebar and content
 class MainWindow(QWidget):
@@ -87,21 +84,25 @@ class MainWindow(QWidget):
     def init_ui(self):
         # Main layout
         main_layout = QHBoxLayout(self)
-
-        # Sidebar
+        
+        # Sidebar toggle button
         self.sidebar = SidebarNavigation(self)
         self.sidebar_visible = True
-
+        
         # Sidebar toggle button
         self.toggle_button = QPushButton("☰", self)
         self.toggle_button.setFixedSize(QSize(50, 50))
-        self.toggle_button.setStyleSheet("background-color: red; color: white; font-size: 18px; border: none;")
         self.toggle_button.clicked.connect(self.toggle_sidebar)
+        self.toggle_button.setStyleSheet("background-color: red; color: white; font-size: 18px; border: none;")
 
         # Content area
         self.content_area = QStackedWidget(self)
         self.content_area.setObjectName("contentArea")
-        self.add_pages()
+        self.content_area.addWidget(self.create_home_page())
+        self.content_area.addWidget(self.create_xero_page())
+        self.content_area.addWidget(self.create_office_page())
+        self.content_area.addWidget(self.create_apc_page())
+        self.content_area.addWidget(self.create_settings_page())
 
         # Connect sidebar buttons to pages
         self.sidebar.home_button.clicked.connect(lambda: self.content_area.setCurrentIndex(0))
@@ -109,7 +110,6 @@ class MainWindow(QWidget):
         self.sidebar.office_button.clicked.connect(lambda: self.content_area.setCurrentIndex(2))
         self.sidebar.apc_button.clicked.connect(lambda: self.content_area.setCurrentIndex(3))
         self.sidebar.settings_button.clicked.connect(lambda: self.content_area.setCurrentIndex(4))
-        self.sidebar.Dev_Login_button.clicked.connect(lambda: self.content_area.setCurrentIndex(5))
 
         # Layout setup
         main_layout.addWidget(self.sidebar)
@@ -117,49 +117,53 @@ class MainWindow(QWidget):
         main_layout.addWidget(self.content_area)
 
     def toggle_sidebar(self):
-        self.sidebar.setVisible(not self.sidebar_visible)
+        if self.sidebar_visible:
+            self.sidebar.hide()
+        else:
+            self.sidebar.show()
         self.sidebar_visible = not self.sidebar_visible
 
-    def add_pages(self):
-        # Add pages to the content area
-        self.content_area.addWidget(self.create_page("Welcome to Automation Haven!"))
-        self.content_area.addWidget(self.create_xero_page())
-        self.content_area.addWidget(self.create_office_page())
-        self.content_area.addWidget(self.create_apc_page())
-        self.content_area.addWidget(self.create_page("Settings"))
-        self.content_area.addWidget(self.create_Developer_page())
-
-    def create_page(self, title, button_text=None):
-        """Generic method for creating simple pages."""
+    # Create pages
+    def create_home_page(self):
         page = QWidget()
         layout = QVBoxLayout()
-        label = QLabel(title)
+        label = QLabel("Welcome to Automation Haven!")
         label.setAlignment(Qt.AlignCenter)
         layout.addWidget(label)
-
-        if button_text:
-            button = QPushButton(button_text)
-            button.setFixedSize(200, 50)
-            layout.addWidget(button, alignment=Qt.AlignCenter)
-
         page.setLayout(layout)
         return page
 
     def create_xero_page(self):
         page = QWidget()
         layout = QVBoxLayout()
+        
+        # Add a label for the page title
         label = QLabel("Xero Automation")
-        label.setAlignment(Qt.AlignCenter)
-
+        label.setAlignment(Qt.AlignCenter)  # Center align the label
+        
+        # Create the button
         xero_sender = QPushButton("Xero Statement Sender")
-        xero_sender.setFixedSize(200, 50)
-        xero_sender.clicked.connect(Xero.create_window)
-        xero_Setup_Button = QPushButton("My Details")
-        xero_Setup_Button.clicked.connect(Xero.xero_setup)
-
+        xero_sender.setFixedSize(200, 50)  # Optional: Set a fixed size for the button
+        
+        # Add widgets to the layout
         layout.addWidget(label)
-        layout.addWidget(xero_sender, alignment=Qt.AlignCenter)
-        layout.addWidget(xero_Setup_Button, alignment=Qt.AlignCenter)
+        layout.addWidget(xero_sender, alignment=Qt.AlignCenter)  # Center the button in the layout
+        
+        # Set the layout for the page
+        page.setLayout(layout)
+        return page
+
+
+    def create_office_page(self):
+        page = QWidget()
+        layout = QVBoxLayout()
+        label = QLabel("Office Automation Tools")
+        
+        # Create the button
+        doc_Automation = QPushButton("Doc Automaions")
+        label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(label)
+        layout.addWidget(doc_Automation, alignment= Qt.AlignCenter)
         page.setLayout(layout)
         return page
 
@@ -167,41 +171,21 @@ class MainWindow(QWidget):
         page = QWidget()
         layout = QVBoxLayout()
         label = QLabel("APC Package Tools")
+        apc_Automation = QPushButton("APC Automations")
         label.setAlignment(Qt.AlignCenter)
-
-        apc_automation = QPushButton("APC Automations")
-        apc_automation.clicked.connect(my_APC.create_apc_window)
-
         layout.addWidget(label)
-        layout.addWidget(apc_automation, alignment=Qt.AlignCenter)
+        apc_Automation.addWidget(apc_Automation)
+        #Add Funtion 
+        apc_Automation.clicked.connect()
         page.setLayout(layout)
         return page
 
-    def create_office_page(self):
+    def create_settings_page(self):
         page = QWidget()
         layout = QVBoxLayout()
-        label = QLabel("Office Automations")
+        label = QLabel("Settings")
         label.setAlignment(Qt.AlignCenter)
-
-        apc_automation = QPushButton("Doc Automations")
-        apc_automation.clicked.connect(office_doc_automation.create_file_automation_window)
-
         layout.addWidget(label)
-        layout.addWidget(apc_automation, alignment=Qt.AlignCenter)
-        page.setLayout(layout)
-        return page
-    
-    def create_Developer_page(self):
-        page = QWidget()
-        layout = QVBoxLayout()
-        label = QLabel("Devs")
-        label.setAlignment(Qt.AlignCenter)
-
-        apc_automation = QPushButton("Log In")
-        apc_automation.clicked.connect(Developer.create_login_window)
-
-        layout.addWidget(label)
-        layout.addWidget(apc_automation, alignment=Qt.AlignCenter)
         page.setLayout(layout)
         return page
 
@@ -211,3 +195,7 @@ if __name__ == "__main__":
     window = MainWindow()
     window.showMaximized()
     app.exec_()
+
+ PATH = r"C:\webdrivers\chromedriver-win64\chromedriver.exe"
+ ###############################################
+ 
