@@ -4,9 +4,191 @@ from PyQt5.QtWidgets import (
 import pandas as pd
 import win32com.client as win32
 import time
+import os
+
 
 # Global variable to keep the APC window reference
 apc_window = None
+
+#Add the create_Script_window here
+def create_script_window():
+    global apc_window
+    selected_folder_path = None
+    selected_excel_path = None
+
+    def browse_folder():
+        nonlocal selected_folder_path
+        folder_path = QFileDialog.getExistingDirectory(apc_window, "Select Folder")
+        selected_folder_path = folder_path if folder_path else None
+        folder_path_label.setText(f"Selected Folder: {folder_path}" if folder_path else "No folder selected.")
+
+    def browse_excel():
+        nonlocal selected_excel_path
+        file_name, _ = QFileDialog.getOpenFileName(
+            apc_window, "Select Excel File", "", "Excel Files (*.xlsx);;All Files (*)"
+        )
+        selected_excel_path = file_name if file_name else None
+        excel_path_label.setText(f"Selected Excel File: {file_name}" if file_name else "No Excel file selected.")
+
+    def run_sender():
+    
+        if not selected_excel_path or not selected_folder_path:
+            QMessageBox.warning(apc_window, "Error", "Please select both an Excel file and a folder before running.")
+            return
+
+        try:
+            # Read the Excel file
+            data = pd.read_excel(selected_excel_path)
+
+            if data.empty:
+                QMessageBox.warning(apc_window, "Error", "The Excel file is empty.")
+                return
+
+            # Ensure the STUDENTNUMBER column exists
+            if 'STUDENTNUMBER' not in data.columns:
+                QMessageBox.warning(apc_window, "Error", "The Excel file must contain a 'STUDENTNUMBER' column.")
+                return
+
+            # Add columns to store paths for the different file types
+            if 'PDF_PATH' not in data.columns:
+                data['PDF_PATH'] = None
+            if 'DOCX_PATH' not in data.columns:
+                data['DOCX_PATH'] = None
+            if 'EXCEL_PATH' not in data.columns:
+                data['EXCEL_PATH'] = None
+
+            # Process each row and look for the corresponding files
+            print("Processing all rows in the Excel file:")
+            for idx, row in data.iterrows():
+                student_number = row['STUDENTNUMBER']
+
+                if pd.isna(student_number):
+                    print(f"Row {idx + 1}: Missing STUDENTNUMBER, skipping.")
+                    continue
+
+                # Convert the STUDENTNUMBER to a string to handle both numeric and alphanumeric cases
+                student_number_str = str(student_number).strip()
+
+                # Construct file names for each type
+                pdf_file_name = f"{student_number_str}.pdf"
+                docx_file_name = f"{student_number_str}.docx"
+                excel_file_name = f"{student_number_str}.xlsx"
+
+                # Paths for each file type
+                pdf_file_path = os.path.join(selected_folder_path, pdf_file_name)
+                docx_file_path = os.path.join(selected_folder_path, docx_file_name)
+                excel_file_path = os.path.join(selected_folder_path, excel_file_name)
+
+                # Check if the files exist and update the DataFrame
+                if os.path.exists(pdf_file_path):
+                    print(f"Row {idx + 1}: Found PDF file for STUDENTNUMBER {student_number_str}: {pdf_file_path}")
+                    data.at[idx, 'PDF_PATH'] = pdf_file_path
+                else:
+                    print(f"Row {idx + 1}: PDF file for STUDENTNUMBER {student_number_str} not found.")
+
+                if os.path.exists(docx_file_path):
+                    print(f"Row {idx + 1}: Found DOCX file for STUDENTNUMBER {student_number_str}: {docx_file_path}")
+                    data.at[idx, 'DOCX_PATH'] = docx_file_path
+                else:
+                    print(f"Row {idx + 1}: DOCX file for STUDENTNUMBER {student_number_str} not found.")
+
+                if os.path.exists(excel_file_path):
+                    print(f"Row {idx + 1}: Found Excel file for STUDENTNUMBER {student_number_str}: {excel_file_path}")
+                    data.at[idx, 'EXCEL_PATH'] = excel_file_path
+                else:
+                    print(f"Row {idx + 1}: Excel file for STUDENTNUMBER {student_number_str} not found.")
+
+            # Save the updated Excel file
+            updated_excel_path = os.path.join(os.path.dirname(selected_excel_path), "Updated_" + os.path.basename(selected_excel_path))
+            data.to_excel(updated_excel_path, index=False)
+            QMessageBox.information(apc_window, "Success", f"Processing complete. Updated file saved as:\n{updated_excel_path}")
+            send_email(updated_excel_path)
+           
+            
+        except Exception as e:
+            QMessageBox.critical(apc_window, "Error", f"An error occurred while processing the file: {str(e)}")
+
+     # Process Emails
+
+    def send_email(updated_path):
+        
+        try:
+            # Initialize Outlook
+            outlook = win32.Dispatch("Outlook.Application")
+            namespace = outlook.GetNamespace("MAPI")
+
+            print("Starting email sending process...")
+
+            # Loop through each row in the DataFrame
+            data = pd.read_excel(updated_path)
+            for idx, row in data.iterrows():
+                email = row.get("EMAIL", None)
+                if not email or pd.isna(email):
+                    print(f"Row {idx + 1}: No email address found, skipping.")
+                    continue
+
+                # Create a new email
+                mail = outlook.CreateItem(0)  # 0 corresponds to MailItem
+                mail.To = email
+                mail.Subject = "Your Documents"
+                mail.Body = f"Dear {row.get('STUDENTNUMBER', 'Student')},\n\nPlease find the attached files.\n\nBest regards,\nJay"
+
+                # Attach files if they exist
+                files_attached = False
+                for column_name in ["PDF_PATH"]:
+                    file_path = row.get(column_name, None)
+                    if file_path and os.path.exists(file_path):
+                        mail.Attachments.Add(file_path)
+                        print(f"Row {idx + 1}: Attached {file_path}")
+                        files_attached = True
+
+                if not files_attached:
+                    print(f"Row {idx + 1}: No files to attach for {email}. Email skipped.")
+                    continue
+
+                # Send the email
+                mail.Send()
+                print(f"Row {idx + 1}: Email sent to {email}")
+
+            QMessageBox.information(apc_window, "Success", "All emails have been sent successfully.")
+
+        except Exception as e:
+            QMessageBox.critical(apc_window, "Error", f"An error occurred while sending emails: {str(e)}")
+
+
+    apc_window = QWidget()
+    apc_window.setWindowTitle("APC Automation Tool")
+    apc_window.setMinimumSize(400, 400)
+
+    # Layout and UI
+    layout = QVBoxLayout()
+    layout.addWidget(QLabel("APC Script Sender Automation Tool").setStyleSheet("font-size: 18px; font-weight: bold;"))
+    layout.addWidget(QLabel("Required Excel Fields:\n- STUDENTNUMBER\n- EMAIL").setStyleSheet("font-size: 14px;"))
+
+    # Folder/Excel Selection
+    excel_path_label = QLabel("No Excel file selected.")
+    folder_path_label = QLabel("No folder selected.")
+    layout.addWidget(excel_path_label)
+    layout.addWidget(folder_path_label)
+
+    excel_button = QPushButton("Select Excel File")
+    folder_button = QPushButton("Select Folder")
+    excel_button.clicked.connect(browse_excel)
+    folder_button.clicked.connect(browse_folder)
+    layout.addWidget(excel_button)
+    layout.addWidget(folder_button)
+
+    # Run Button
+    run_button = QPushButton("Run Script")
+    run_button.clicked.connect(run_sender)
+    layout.addWidget(run_button)
+
+    # Finalize Window
+    apc_window.setLayout(layout)
+    apc_window.show()
+
+
+
 
 def create_apc_window():
     """Function to create and display the APC Automation window."""
@@ -14,7 +196,7 @@ def create_apc_window():
 
     # Create a new widget as a window
     apc_window = QWidget()
-    apc_window.setWindowTitle("APC Automation Window")
+    apc_window.setWindowTitle("APC Script Automation")
     apc_window.setMinimumSize(400, 400)
 
     # Variable to hold the selected file path and pin_only_keycode

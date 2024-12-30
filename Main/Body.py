@@ -169,11 +169,14 @@ class MainWindow(QWidget):
         label = QLabel("APC Package Tools")
         label.setAlignment(Qt.AlignCenter)
 
-        apc_automation = QPushButton("APC Automations")
+        apc_automation = QPushButton("Keycodes and Pins")
+        apc_script_automation = QPushButton("Script Sender")
         apc_automation.clicked.connect(my_APC.create_apc_window)
+        apc_script_automation.clicked.connect(my_APC.create_script_window)
 
         layout.addWidget(label)
         layout.addWidget(apc_automation, alignment=Qt.AlignCenter)
+        layout.addWidget(apc_script_automation, alignment=Qt.AlignCenter)
         page.setLayout(layout)
         return page
 

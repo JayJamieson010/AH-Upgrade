@@ -14,6 +14,9 @@ import time
 PATH = ""
 email = ""
 password = ""
+testing = False
+
+#Testing mode inclution
 
 CONFIG_FILE = "Main\Xero.json"  # Path to the JSON file where we will save the variables
 
@@ -215,8 +218,14 @@ def create_window():
             ws = wb.active
             student_list = list(ws.iter_rows(min_row=2, min_col=1, max_col=1, values_only=True))
             end_date_selected = pyautogui.prompt("End Date?", "Text")
+            testing_message = pyautogui.prompt("Are you running a test?")
+            if testing_message == "Yes" or "yes" or "YES":
+                testing = True
+            elif testing_message =="No" or "no" or "NO" or "nO":
+                testing = False
+            else:
+                driver.quit()    
             time.sleep(3)
-
             # Maximize the browser window
             driver.maximize_window()
 
@@ -246,6 +255,7 @@ def create_window():
                     backup_email = pyautogui.locateCenterOnScreen(r"Main\Images\Backup email.png", confidence=0.7)
                     pyautogui.click(backup_email)
                     send_backup_code = pyautogui.locateCenterOnScreen(r"Main\Images\send_backup_code.png", confidence=0.7)
+                    pyautogui.sleep(1)
                     pyautogui.click(send_backup_code)
                     time.sleep(30)
                     pyautogui.press("tab")
@@ -312,7 +322,6 @@ def create_window():
                             checkbox.click()
 
                             email = driver.find_element(By.ID, "ext-gen22")
-
                             if email:
                                 email.click()
                                 time.sleep(3)
@@ -323,7 +332,10 @@ def create_window():
                                 emailAdress.click()
                                 emailAdress.send_keys(Keys.CONTROL + 'a')  # Select all text
                                 emailAdress.send_keys(Keys.BACKSPACE)
-                                emailAdress.send_keys("Jay@ias.ac.za")
+                                if testing == True:
+                                    emailAdress.send_keys("Jay@ias.ac.za")
+                                elif testing == False:
+                                    emailAdress.send_keys("jayjamieson010@gmail.com")
 
                             sendButton= driver.find_element(By.ID, "email01")
                             if sendButton:
