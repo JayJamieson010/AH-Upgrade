@@ -110,17 +110,17 @@ def create_script_window():
 
      # Process Emails
 
-    def send_email(updated_path):
-        
+    def send_email(updated_excel_path):
         try:
+            # Load the updated Excel file into a DataFrame
+            data = pd.read_excel(updated_excel_path)
+
             # Initialize Outlook
             outlook = win32.Dispatch("Outlook.Application")
-            namespace = outlook.GetNamespace("MAPI")
 
             print("Starting email sending process...")
 
             # Loop through each row in the DataFrame
-            data = pd.read_excel(updated_path)
             for idx, row in data.iterrows():
                 email = row.get("EMAIL", None)
                 if not email or pd.isna(email):
@@ -130,20 +130,31 @@ def create_script_window():
                 # Create a new email
                 mail = outlook.CreateItem(0)  # 0 corresponds to MailItem
                 mail.To = email
-                mail.Subject = "Your Documents"
+                mail.Subject = "Your Apc Script"
                 mail.Body = f"Dear {row.get('STUDENTNUMBER', 'Student')},\n\nPlease find the attached files.\n\nBest regards,\nJay"
 
-                # Attach files if they exist
-                files_attached = False
-                for column_name in ["PDF_PATH"]:
+                files_attached = False  # Track whether any files were attached
+
+                # Attach files based on available paths
+                for file_type, column_name in [("PDF", "PDF_PATH"), ("DOCX", "DOCX_PATH"), ("EXCEL", "EXCEL_PATH")]:
                     file_path = row.get(column_name, None)
+
+                    # Ensure the file path is valid and check if it exists
+                    if isinstance(file_path, float) and pd.isna(file_path):  # Handle NaN values
+                        file_path = None
+                    elif file_path:  # Convert to string if not NaN
+                        file_path = str(file_path).strip()
+
                     if file_path and os.path.exists(file_path):
                         mail.Attachments.Add(file_path)
-                        print(f"Row {idx + 1}: Attached {file_path}")
+                        print(f"Row {idx + 1}: Attached {file_type} file {file_path}")
                         files_attached = True
+                    else:
+                        print(f"Row {idx + 1}: {file_type} file not found or path invalid.")
 
+                # If no files were attached, skip sending the email
                 if not files_attached:
-                    print(f"Row {idx + 1}: No files to attach for {email}. Email skipped.")
+                    print(f"Row {idx + 1}: No valid files to attach. Email skipped for {email}.")
                     continue
 
                 # Send the email
@@ -154,6 +165,7 @@ def create_script_window():
 
         except Exception as e:
             QMessageBox.critical(apc_window, "Error", f"An error occurred while sending emails: {str(e)}")
+
 
 
     apc_window = QWidget()
