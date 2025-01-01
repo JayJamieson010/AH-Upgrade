@@ -2,12 +2,163 @@ import os
 import json
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QLabel, QPushButton, QFileDialog,
-    QListWidget, QMessageBox, QInputDialog, QScrollArea, QSizePolicy
+    QListWidget, QMessageBox, QInputDialog, QScrollArea, QSizePolicy,  QTextEdit, QHBoxLayout
 )
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
 from docx import Document
 import pandas as pd
+
+import os
+import pandas as pd
+import win32com.client as win32
+from PyQt5.QtWidgets import (
+    QApplication, QWidget, QVBoxLayout, QLabel, QPushButton,
+    QFileDialog, QMessageBox
+)
+from PyQt5.QtCore import Qt
+
+bulk_email_window = None
+
+def create_bulk_email_window():
+    global bulk_email_window
+    selected_excel_path = None
+
+    def browse_excel():
+        nonlocal selected_excel_path
+        file_name, _ = QFileDialog.getOpenFileName(
+            bulk_email_window, "Select Excel File", "", "Excel Files (*.xlsx);;All Files (*)"
+        )
+        selected_excel_path = file_name if file_name else None
+        excel_path_label.setText(f"Selected Excel File: {file_name}" if file_name else "No Excel file selected.")
+
+    def send_bulk_emails():
+        if not selected_excel_path:
+            QMessageBox.warning(bulk_email_window, "Error", "Please select an Excel file before proceeding.")
+            return
+
+        email_body_template = email_body_text.toPlainText().strip()
+        if not email_body_template:
+            QMessageBox.warning(bulk_email_window, "Error", "Email body cannot be empty.")
+            return
+
+        try:
+            data = pd.read_excel(selected_excel_path)
+
+            if data.empty:
+                QMessageBox.warning(bulk_email_window, "Error", "The Excel file is empty.")
+                return
+
+            if "EMAIL" not in data.columns:
+                QMessageBox.warning(bulk_email_window, "Error", "The Excel file must contain an 'EMAIL' column.")
+                return
+
+            outlook = win32.Dispatch("Outlook.Application")
+
+            print("Sending emails...")
+            for idx, row in data.iterrows():
+                email = row.get("EMAIL", None)
+                if not email or pd.isna(email):
+                    print(f"Row {idx + 1}: No email address found, skipping.")
+                    continue
+
+                # Create a customized email body for the current row
+                email_body = email_body_template
+                for col_name in data.columns:
+                    placeholder = f"[{col_name.upper()}]"
+                    if placeholder in email_body:
+                        col_value = str(row[col_name]) if not pd.isna(row[col_name]) else ""
+                        email_body = email_body.replace(placeholder, col_value.upper() if col_name.upper() == "KEYWORD" else col_value)
+
+                mail = outlook.CreateItem(0)
+                mail.To = email
+                mail.Subject = "Bulk Email Notification"
+                mail.Body = email_body
+
+                mail.Send()
+                print(f"Row {idx + 1}: Email sent to {email}")
+
+            QMessageBox.information(bulk_email_window, "Success", "All emails have been sent successfully.")
+
+        except Exception as e:
+            QMessageBox.critical(bulk_email_window, "Error", f"An error occurred: {str(e)}")
+
+
+    def save_email_body():
+        # Placeholder for "Save Email Body" functionality
+        QMessageBox.information(bulk_email_window, "Save Email", "Save Email Body functionality will be implemented.")
+
+    def load_email_body():
+        # Placeholder for "Load Email Body" functionality
+        QMessageBox.information(bulk_email_window, "Load Email", "Load Email Body functionality will be implemented.")
+
+    app = QApplication.instance()
+    if not app:  # Check if an instance of QApplication already exists
+        app = QApplication([])
+
+    bulk_email_window = QWidget()
+    bulk_email_window.setWindowTitle("Bulk Email Sender")
+    bulk_email_window.setMinimumSize(600, 500)
+    bulk_email_window.setStyleSheet("background-color: #f4f4f4;")
+
+    layout = QVBoxLayout()
+
+    title_label = QLabel("Bulk Email System")
+    title_label.setStyleSheet("font-size: 22px; font-weight: bold; color: #8b0000;")
+    layout.addWidget(title_label, alignment=Qt.AlignCenter)
+
+    excel_path_label = QLabel("No Excel file selected.")
+    layout.addWidget(excel_path_label)
+
+    excel_button = QPushButton("Select Excel File")
+    excel_button.setStyleSheet("background-color: #8b0000; color: white; font-weight: bold; padding: 8px;")
+    excel_button.clicked.connect(browse_excel)
+    layout.addWidget(excel_button)
+
+    # Add email body text box
+    email_body_label = QLabel("Email Body:")
+    email_body_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #333;")
+    layout.addWidget(email_body_label)
+
+    email_body_text = QTextEdit()
+    email_body_text.setStyleSheet("""
+        QTextEdit {
+            background-color: #ffffff;
+            border: 2px solid #8b0000;
+            border-radius: 5px;
+            font-size: 14px;
+            color: #333;
+            padding: 10px;
+        }
+        QTextEdit:focus {
+            border: 2px solid #00aaff;
+        }
+    """)
+    layout.addWidget(email_body_text)
+
+    # Add "Save Email Body" and "Load Email Body" buttons
+    email_buttons_layout = QHBoxLayout()
+
+    save_button = QPushButton("Save Email Body")
+    save_button.setStyleSheet("background-color: #008000; color: white; font-weight: bold; padding: 8px;")
+    save_button.clicked.connect(save_email_body)
+    email_buttons_layout.addWidget(save_button)
+
+    load_button = QPushButton("Load Email Body")
+    load_button.setStyleSheet("background-color: #1e90ff; color: white; font-weight: bold; padding: 8px;")
+    load_button.clicked.connect(load_email_body)
+    email_buttons_layout.addWidget(load_button)
+
+    layout.addLayout(email_buttons_layout)
+
+    send_button = QPushButton("Send Emails")
+    send_button.setStyleSheet("background-color: #8b0000; color: white; font-weight: bold; padding: 10px;")
+    send_button.clicked.connect(send_bulk_emails)
+    layout.addWidget(send_button)
+
+    bulk_email_window.setLayout(layout)
+    bulk_email_window.show()
+    app.exec_()
 
 
 def create_file_automation_window():
@@ -23,7 +174,7 @@ def create_file_automation_window():
     layout = QVBoxLayout()
 
     # Title label
-    title_label = QLabel("File Automation System")
+    title_label = QLabel("File Automation sSystem")
     title_label.setStyleSheet("font-size: 22px; font-weight: bold; color: #8b0000;")
     layout.addWidget(title_label, alignment=Qt.AlignCenter)
 

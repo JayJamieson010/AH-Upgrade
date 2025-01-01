@@ -186,11 +186,14 @@ class MainWindow(QWidget):
         label = QLabel("Office Automations")
         label.setAlignment(Qt.AlignCenter)
 
-        apc_automation = QPushButton("Doc Automations")
-        apc_automation.clicked.connect(office_doc_automation.create_file_automation_window)
-
+        office_file_automation_button = QPushButton("Doc Automations")
+        bulk_email_button = QPushButton("Bulk Email Sender")
+        bulk_email_button.clicked.connect(office_doc_automation.create_bulk_email_window)
+        office_file_automation_button.clicked.connect(office_doc_automation.create_file_automation_window)
+        
         layout.addWidget(label)
-        layout.addWidget(apc_automation, alignment=Qt.AlignCenter)
+        layout.addWidget(office_file_automation_button, alignment=Qt.AlignCenter)
+        layout.addWidget(bulk_email_button, alignment=Qt.AlignCenter)
         page.setLayout(layout)
         return page
     
