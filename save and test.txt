@@ -199,3 +199,4 @@ if __name__ == "__main__":
  PATH = r"C:\webdrivers\chromedriver-win64\chromedriver.exe"
  ###############################################
  
+ "C:\Users\jayja\OneDrive\Documents\RPA Achievements\Certificates\certificate.pfx"
