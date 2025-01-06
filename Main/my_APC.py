@@ -159,6 +159,8 @@ def create_script_window():
 
                 # Send the email
                 mail.Send()
+                time.sleep(2)
+                
                 print(f"Row {idx + 1}: Email sent to {email}")
 
             QMessageBox.information(apc_window, "Success", "All emails have been sent successfully.")

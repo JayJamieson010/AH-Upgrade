@@ -8,6 +8,7 @@ from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
 from docx import Document
 import pandas as pd
+import time
 
 import os
 import pandas as pd
@@ -76,6 +77,7 @@ def create_bulk_email_window():
                 mail.Body = email_body
 
                 mail.Send()
+                time.sleep(2)
                 print(f"Row {idx + 1}: Email sent to {email}")
 
             QMessageBox.information(bulk_email_window, "Success", "All emails have been sent successfully.")
