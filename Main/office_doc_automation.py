@@ -85,14 +85,64 @@ def create_bulk_email_window():
         except Exception as e:
             QMessageBox.critical(bulk_email_window, "Error", f"An error occurred: {str(e)}")
 
-
     def save_email_body():
-        # Placeholder for "Save Email Body" functionality
-        QMessageBox.information(bulk_email_window, "Save Email", "Save Email Body functionality will be implemented.")
+    # Open a file dialog for the user to choose the save location
+        file_name, _ = QFileDialog.getSaveFileName(
+        bulk_email_window,
+        "Save Email Body",
+        "",
+        "Text Files (*.txt);;All Files (*)"
+    )
+    
+    # Check if the user canceled the save dialog
+        if not file_name:
+            return
+        
+        try:
+            # Get the email body text from the QTextEdit widget
+            email_body = email_body_text.toPlainText().strip()
+            
+            # Validate that the email body is not empty
+            if not email_body:
+                QMessageBox.warning(bulk_email_window, "Error", "Email body cannot be empty.")
+                return
+            
+            # Write the email body to the chosen file
+            with open(file_name, 'w', encoding='utf-8') as file:
+                file.write(email_body)
+            
+            # Notify the user that the save was successful
+            QMessageBox.information(bulk_email_window, "Success", f"Email body saved successfully to {file_name}")
+        except Exception as e:
+            # Handle any errors during the save process
+            QMessageBox.critical(bulk_email_window, "Error", f"Failed to save email body: {str(e)}")
 
     def load_email_body():
-        # Placeholder for "Load Email Body" functionality
-        QMessageBox.information(bulk_email_window, "Load Email", "Load Email Body functionality will be implemented.")
+        # Open a file dialog for the user to choose a file to load
+        file_name, _ = QFileDialog.getOpenFileName(
+            bulk_email_window,
+            "Load Email Body",
+            "",
+            "Text Files (*.txt);;All Files (*)"
+        )
+        
+        # Check if the user canceled the open dialog
+        if not file_name:
+            return
+
+        try:
+            # Read the content of the selected file
+            with open(file_name, 'r', encoding='utf-8') as file:
+                email_body = file.read()
+
+            # Set the content of the QTextEdit widget
+            email_body_text.setPlainText(email_body)
+
+            # Notify the user that the load was successful
+            QMessageBox.information(bulk_email_window, "Success", f"Email body loaded successfully from {file_name}")
+        except Exception as e:
+            # Handle any errors during the load process
+            QMessageBox.critical(bulk_email_window, "Error", f"Failed to load email body: {str(e)}")
 
     app = QApplication.instance()
     if not app:  # Check if an instance of QApplication already exists
