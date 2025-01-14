@@ -218,13 +218,15 @@ def create_window():
             ws = wb.active
             student_list = list(ws.iter_rows(min_row=2, min_col=1, max_col=1, values_only=True))
             end_date_selected = pyautogui.prompt("End Date?", "Text")
-            testing_message = pyautogui.prompt("Are you running a test?")
-            if testing_message == "Yes" or "yes" or "YES":
+            testing_message = pyautogui.prompt("Are you running a test?").lower()
+            if testing_message == "yes":
+                global testing
                 testing = True
-            elif testing_message =="No" or "no" or "NO" or "nO":
-                testing = False
+                print (testing)
+            
             else:
-                driver.quit()    
+                print("not testing") 
+                print(testing) 
             time.sleep(3)
             # Maximize the browser window
             driver.maximize_window()
@@ -240,11 +242,11 @@ def create_window():
             password_field.send_keys(password)
             login_button = driver.find_element(By.CLASS_NAME, "xui-button")
             login_button.click()
-            time.sleep(5)
+            time.sleep(2)
 
             driver.execute_script("window.scrollBy(0, 500);")
             WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "xui-margin-bottom-xsmall")))
-
+            time.sleep(10)
             # Check for MFA requirement
             mfa_element = driver.find_elements(By.CLASS_NAME, "xui-margin-bottom-xsmall")
             if mfa_element:
@@ -261,6 +263,28 @@ def create_window():
                     pyautogui.press("tab")
                     pyautogui.press("enter")
 
+                time.sleep(20)  # Wait for page to load
+                contacts = locate_element("Main/Images/Contacts.png", confidence=0.8)
+                if contacts:
+                    pyautogui.click(contacts)
+                    time.sleep(2)
+
+                    all_contacts = locate_element("Main/Images/AllContacts.png", confidence=0.8)
+
+                    if all_contacts:
+                        pyautogui.click(all_contacts)
+                        time.sleep(3)
+
+                        options = locate_element("Main/Images/options.png", confidence=0.8)
+                        if options:
+                            pyautogui.click(options)
+                            time.sleep(3)
+
+                            send_statement = locate_element("Main/Images/sendStatement.png", confidence=0.8)
+                            if send_statement:
+                                pyautogui.click(send_statement)
+                                time.sleep(3)
+            else:
                 time.sleep(20)  # Wait for page to load
                 contacts = locate_element("Main/Images/Contacts.png", confidence=0.8)
                 if contacts:
@@ -332,10 +356,9 @@ def create_window():
                                 emailAdress.click()
                                 emailAdress.send_keys(Keys.CONTROL + 'a')  # Select all text
                                 emailAdress.send_keys(Keys.BACKSPACE)
-                                if testing == True:
-                                    emailAdress.send_keys("Jay@ias.ac.za")
-                                elif testing == False:
-                                    emailAdress.send_keys("jayjamieson010@gmail.com")
+                                if testing:
+                                    emailAdress.send_keys(email)
+                
 
                             sendButton= driver.find_element(By.ID, "email01")
                             if sendButton:
