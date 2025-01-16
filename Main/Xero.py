@@ -9,6 +9,7 @@ from selenium.webdriver.common.keys import Keys
 from openpyxl import load_workbook
 import pyautogui
 import time
+import os   
 
 # Global variables for user inputs
 PATH = ""
@@ -35,14 +36,20 @@ def load_config():
         print("Error reading the configuration file.")
 
 def save_config():
-    """Save configuration to a JSON file."""
+    """Save configuration to a JSON file, creating the file if it doesn't exist."""
     config = {
         "path": PATH,
         "email": email,
         "password": password
     }
-    with open(CONFIG_FILE, "w") as file:
-        json.dump(config, file, indent=4)
+    try:
+        # Ensure the directory structure exists
+        os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
+
+        with open(CONFIG_FILE, "w") as file:
+            json.dump(config, file, indent=4)
+    except Exception as e:
+        print(f"Error saving configuration: {e}")
 
 def xero_setup():
     """
@@ -272,7 +279,7 @@ def create_window():
                     all_contacts = locate_element("Main/Images/AllContacts.png", confidence=0.8)
 
                     if all_contacts:
-                        pyautogui.click(all_contacts)
+                        all_contacts.click()
                         time.sleep(3)
 
                         options = locate_element("Main/Images/options.png", confidence=0.8)
@@ -286,25 +293,27 @@ def create_window():
                                 time.sleep(3)
             else:
                 time.sleep(20)  # Wait for page to load
-                contacts = locate_element("Main/Images/Contacts.png", confidence=0.8)
-                if contacts:
-                    pyautogui.click(contacts)
-                    time.sleep(2)
+                contacts_button = driver.find_element(By.XPATH, "//button[text()='Contacts']")  # Adjust XPath if needed
+                # Click the button
+                if contacts_button:
+                    contacts_button.click()
+                    time.sleep(2)  # Pause to observe or wait for the next action
 
-                    all_contacts = locate_element("Main/Images/AllContacts.png", confidence=0.8)
+                    all_contacts = driver.find_element(By.XPATH, "//a[text()='All contacts']") 
 
                     if all_contacts:
-                        pyautogui.click(all_contacts)
+                        all_contacts.click()
                         time.sleep(3)
 
-                        options = locate_element("Main/Images/options.png", confidence=0.8)
+                        #options = locate_element("Main/Images/options.png", confidence=0.8)
+                        options = driver.find_element(By.CLASS_NAME, "xui-touchtarget")
                         if options:
-                            pyautogui.click(options)
+                            options.click()
                             time.sleep(3)
 
-                            send_statement = locate_element("Main/Images/sendStatement.png", confidence=0.8)
+                            send_statement = driver.find_element(By.XPATH, "//span[text()='Send statements']")  # Adjust XPath if needed
                             if send_statement:
-                                pyautogui.click(send_statement)
+                                send_statement.click()
                                 time.sleep(3)
 
             # Additional Xero steps with Excel data integration
@@ -345,9 +354,9 @@ def create_window():
                         if not checkbox.is_selected():
                             checkbox.click()
 
-                            email = driver.find_element(By.ID, "ext-gen22")
-                            if email:
-                                email.click()
+                            emailButton = driver.find_element(By.ID, "ext-gen22")
+                            if emailButton:
+                                emailButton.click()
                                 time.sleep(3)
                             
                             emailAdress = driver.find_element(By.XPATH, "//*[contains(@id, 'MessageTo')]")
