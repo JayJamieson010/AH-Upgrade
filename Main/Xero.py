@@ -258,38 +258,39 @@ def create_window():
             mfa_element = driver.find_elements(By.CLASS_NAME, "xui-margin-bottom-xsmall")
             if mfa_element:
                 pyautogui.scroll(-200)
-                use_backup = pyautogui.locateCenterOnScreen(r"Main\Images\Use_Backup.png", confidence=0.7)
+                use_backup = driver.find_element(By.XPATH, "//button[text()='Use a backup method instead']")  # Adjust XPath if needed
                 if use_backup:
-                    pyautogui.click(use_backup)
-                    backup_email = pyautogui.locateCenterOnScreen(r"Main\Images\Backup email.png", confidence=0.7)
-                    pyautogui.click(backup_email)
-                    send_backup_code = pyautogui.locateCenterOnScreen(r"Main\Images\send_backup_code.png", confidence=0.7)
-                    pyautogui.sleep(1)
-                    pyautogui.click(send_backup_code)
+                    use_backup.click()
+                    backup_email = driver.find_element(By.XPATH, "//h2[text()='Backup email address']") 
+                    time.sleep(1)
+                    backup_email.click()
+                    send_backup_code = driver.find_element(By.XPATH, "//button[text()='Send code']") 
+                    time.sleep(1)
+                    send_backup_code.click()
                     time.sleep(30)
                     pyautogui.press("tab")
                     pyautogui.press("enter")
 
                 time.sleep(20)  # Wait for page to load
-                contacts = locate_element("Main/Images/Contacts.png", confidence=0.8)
-                if contacts:
-                    pyautogui.click(contacts)
+                contacts_button = driver.find_element(By.XPATH, "//button[text()='Contacts']")  # Adjust XPath if needed
+                if contacts_button:
+                    contacts_button.click()
                     time.sleep(2)
 
-                    all_contacts = locate_element("Main/Images/AllContacts.png", confidence=0.8)
+                    all_contacts = driver.find_element(By.XPATH, "//a[text()='All contacts']") 
 
                     if all_contacts:
                         all_contacts.click()
                         time.sleep(3)
 
-                        options = locate_element("Main/Images/options.png", confidence=0.8)
+                        options = driver.find_element(By.CLASS_NAME, "xui-touchtarget")
                         if options:
-                            pyautogui.click(options)
+                            options.click()
                             time.sleep(3)
 
-                            send_statement = locate_element("Main/Images/sendStatement.png", confidence=0.8)
+                            send_statement = driver.find_element(By.XPATH, "//span[text()='Send statements']")
                             if send_statement:
-                                pyautogui.click(send_statement)
+                                send_statement.click()
                                 time.sleep(3)
             else:
                 time.sleep(20)  # Wait for page to load
@@ -394,10 +395,9 @@ def create_window():
     
     # Create the layout for the window
     layout = QVBoxLayout()
-    layout.addWidget(browse_button)
     layout.addWidget(excel_path_label)
+    layout.addWidget(browse_button)
     layout.addWidget(QPushButton("Send Statement", clicked=xero_statement_sender))
-
     xero_window.setLayout(layout)
     xero_window.show()
 

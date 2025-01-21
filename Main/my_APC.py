@@ -21,7 +21,7 @@ def create_script_window():
         folder_path = QFileDialog.getExistingDirectory(apc_window, "Select Folder")
         selected_folder_path = folder_path if folder_path else None
         folder_path_label.setText(f"Selected Folder: {folder_path}" if folder_path else "No folder selected.")
-
+    
     def browse_excel():
         nonlocal selected_excel_path
         file_name, _ = QFileDialog.getOpenFileName(
