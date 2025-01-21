@@ -9,7 +9,6 @@ from PyQt5.QtCore import Qt
 from docx import Document
 import pandas as pd
 import time
-
 import os
 import pandas as pd
 import win32com.client as win32
@@ -18,8 +17,12 @@ from PyQt5.QtWidgets import (
     QFileDialog, QMessageBox
 )
 from PyQt5.QtCore import Qt
+from openpyxl import Workbook
+import tkinter as tk
+from tkinter import filedialog
 
 bulk_email_window = None
+send_saved_docs_window = None
 
 def create_bulk_email_window():
     global bulk_email_window
@@ -257,6 +260,7 @@ def create_file_automation_window():
     save_automation_button = QPushButton("Save Automation")
     delete_automation_button = QPushButton("Delete Selected Automation")
     run_automation_button = QPushButton("Run Automation")
+    send_automation_button = QPushButton("Send Generated files.")
 
     button_style = """
         QPushButton {
@@ -281,6 +285,8 @@ def create_file_automation_window():
     layout.addWidget(save_automation_button)
     layout.addWidget(delete_automation_button)
     layout.addWidget(run_automation_button)
+    layout.addWidget(send_automation_button)
+    
 
     # Variables to hold selected file paths
     selected_template_path = None
@@ -401,35 +407,161 @@ def create_file_automation_window():
             QMessageBox.warning(file_automation_window, "Warning", "Please select an automation to run.")
             return
 
+        # Retrieve the selected automation details
         automation = automations[selected_item.text()]
         template_path = automation["template"]
         excel_path = automation["excel"]
         save_path = automation["save_path"]
 
         try:
-            # Read Excel and process each row
+            # Load Excel data into a DataFrame
             data = pd.read_excel(excel_path)
+            if data.empty:
+                QMessageBox.warning(file_automation_window, "Warning", "The Excel file is empty.")
+                return
+
+            # Prepare a list to store output paths for Excel update
+            output_paths = []
+
+            # Iterate over each row to generate and save customized documents
             for idx, row in data.iterrows():
-                # Open the template and replace placeholders with actual values
                 doc = Document(template_path)
+
+                # Replace placeholders in the Word document with actual data from the row
                 for paragraph in doc.paragraphs:
                     for column_name, value in row.items():
                         placeholder = f"[{column_name}]"
                         if placeholder in paragraph.text:
-                            paragraph.text = paragraph.text.replace(placeholder, str(value))
+                            paragraph.text = paragraph.text.replace(placeholder, str(value) if not pd.isna(value) else "")
 
-                # Extract Name and Surname from the current row
+                # Generate filename using the "NAME" and "SURNAME" columns
                 name = row.get("NAME", f"Document_{idx+1}")
                 surname = row.get("SURNAME", "")
                 filename = f"{name}_{surname}.docx".strip("_")  # Ensure no stray underscores
 
-                # Save the modified document
+                # Save the customized document to the specified directory
                 output_path = os.path.join(save_path, filename)
                 doc.save(output_path)
 
-            QMessageBox.information(file_automation_window, "Success", f"Automation completed. Files saved to {save_path}")
+                # Store the output path for updating the Excel file
+                output_paths.append(output_path)
+
+            # Add a new column "Generated File Path" to the DataFrame
+            data["Generated File Path"] = output_paths
+
+            # Save the updated DataFrame back to the Excel file
+            with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
+                data.to_excel(writer, index=False)
+
+            # Notify the user that the automation has completed successfully
+            QMessageBox.information(file_automation_window, "Success", f"Automation completed. Files saved to {save_path} and Excel updated.")
         except Exception as e:
+            # Show an error message if something goes wrong
             QMessageBox.critical(file_automation_window, "Error", f"An error occurred: {str(e)}")
+
+
+
+    def send_saved_docs():
+        updated_excel_path = None
+
+        def browse_excel():
+            nonlocal updated_excel_path  # Reference the variable from the outer scope
+            options = QFileDialog.Options()
+            file_name, _ = QFileDialog.getOpenFileName(
+                send_saved_docs_window, "Select Excel File", "", "Excel Files (*.xlsx);;All Files (*)", options=options
+            )
+            if file_name:
+                excel_path_label.setText(f"Selected Excel File: {file_name}")
+                updated_excel_path = file_name
+            else:
+                excel_path_label.setText("No Excel file selected.")
+                updated_excel_path = None
+
+        send_saved_docs_window = QWidget()
+        send_saved_docs_window.setWindowTitle("APC Automation Tool")
+        send_saved_docs_window.setMinimumSize(400, 400)
+
+        # Layout and UI
+        layout = QVBoxLayout()
+        
+        title_label = QLabel("APC Script Sender Automation Tool")
+        title_label.setStyleSheet("font-size: 18px; font-weight: bold;")
+        layout.addWidget(title_label)
+
+        instructions_label = QLabel("Required Excel Fields:\n- STUDENTNUMBER\n- EMAIL")
+        instructions_label.setStyleSheet("font-size: 14px;")
+        layout.addWidget(instructions_label)
+
+        # Folder/Excel Selection
+        excel_path_label = QLabel("No Excel file selected.")
+        layout.addWidget(excel_path_label)
+
+        excel_button = QPushButton("Select Excel File")
+        excel_button.clicked.connect(browse_excel)
+        layout.addWidget(excel_button)
+
+        # Run Button
+        send_button = QPushButton("Run Script")
+        layout.addWidget(send_button)
+
+        send_saved_docs_window.setLayout(layout)
+        send_saved_docs_window.show()
+
+        def run_script():
+            if not updated_excel_path:
+                QMessageBox.warning(send_saved_docs_window, "Error", "Please select an Excel file before running the script.")
+                return
+
+            try:
+                # Read the updated Excel file
+                data = pd.read_excel(updated_excel_path)
+
+                # Check if necessary columns exist
+                required_columns = ["EMAIL", "Generated File Path", "NAME", "SURNAME"]
+                for col in required_columns:
+                    if col not in data.columns:
+                        QMessageBox.warning(
+                            send_saved_docs_window,
+                            "Error",
+                            f"The Excel file must contain the following columns: {', '.join(required_columns)}."
+                        )
+                        return
+
+                outlook = win32.Dispatch("Outlook.Application")
+
+                for idx, row in data.iterrows():
+                    email = row.get("EMAIL", None)
+                    file_path = row.get("Generated File Path", None)
+
+                    if not email or pd.isna(email) or not file_path or pd.isna(file_path):
+                        print(f"Row {idx + 1}: Missing email or file path, skipping.")
+                        continue
+
+                    # Create an email
+                    mail = outlook.CreateItem(0)
+                    mail.To = email
+                    mail.Subject = f"Generated Document for {row['NAME']} {row['SURNAME']}"
+                    mail.Body = "Please find the attached document."
+
+                    # Attach the file
+                    mail.Attachments.Add(file_path)
+
+                    mail.Send()
+                    print(f"Row {idx + 1}: Email sent to {email} with attachment {file_path}")
+
+                QMessageBox.information(send_saved_docs_window, "Success", "All documents have been sent successfully.")
+
+            except Exception as e:
+                QMessageBox.critical(send_saved_docs_window, "Error", f"An error occurred: {str(e)}")
+
+        send_button.clicked.connect(run_script)
+
+    # Application entry point
+        send_saved_docs_window.setLayout(layout)
+        send_saved_docs_window.show()
+    
+    
+
 
     # Connect buttons to functions
     browse_template_button.clicked.connect(browse_template)
@@ -438,6 +570,9 @@ def create_file_automation_window():
     save_automation_button.clicked.connect(save_automation)
     delete_automation_button.clicked.connect(delete_selected_automation)
     run_automation_button.clicked.connect(run_automation)
+    send_automation_button.clicked.connect(send_saved_docs)
+
+    
 
     # Load automations on startup
     load_automations()
